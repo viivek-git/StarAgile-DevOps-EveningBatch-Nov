@@ -1,0 +1,525 @@
+
+
+Trainer: Sonal Mittal
+================================
+Recap:
+> Continuous Deployment with Docker 
+> Introduction to Docker 
+> Docker Architecture
+> Docker Images 
+> Docker run options
+
+Agenda:
+====================
+Detached Mode - (-d)
+Port mapping
+Custom Images using Docker file
+Volumes
+
+
+
+=====================================
+
+
+
+
+
+
+First 15 mins Q & A session of yesterday session:
+========================================
+Continuous Integration: Jenkins
+=======================================
+Using an automation tool to fetch the code form github and then build (Compile + test+ Package ) using a build automation tool
+
+Java code ==> compile it --> class files 
+test it --> test case are passed or failed 
+Build it --> generate an artifact .war, .jar,.ear
+Artifact is a binary file or an executable that can be deployed on a server
+
+Continuous Deployment:
+=======================================
+ Deployment: means pushing the artifact on a server (tomcat, apache, nginx) for it to be deployed and made aavailbvle to an end user 
+
+ Continuous Deployment: Using an automation tool to deploy you artifact on test server , pre-prod env and production env 
+
+Deployment tools:
+
+Docker and Kubernetes 
+Ansible (primary role is to do configuration management but can also be used to deploy application)
+
+2 ways to deploy the code :
+
+Deploy your application on a Virtual machine --> Ansible(devOps tool)  
+
+Deploy your application on a Container --> Docker and Kubernetes
+
+As a devops you may deploy on a VM or as a container 
+
+Deployment on Virtual Machine 
+===============================
+
+GO to AWS --> go Ec2 Dashboard --> 
+create a VM (ubuntu)
+Instance type - t2.micro
+keys
+networks
+security group
+connect to the VM
+Install Java 17
+Install tomcat (webserver)
+Install maven
+Build the code using the command mvn packge --> app.war
+Execute the command to push java app.war on tomcat server 
+1 application will run on ipaddres:8080
+
+On this VM can I deploy an another Java application on same tomcat server (8080)
+
+
+deployment on Container --> Docker 
+===============================================
+GO to AWS --> go Ec2 Dashboard --> 
+create a VM (ubuntu)
+Instance type - t2.micro
+keys
+networks
+security group
+connect to the VM
+Install Docker 
+Docker provides us Images 
+Run Image of Tomcat 
+I will get a container - In the container we will have java , OS and tomcat )
+I will copy my code aap.war file on the container 
+so application will up and running on the container (8080)--> we can access
+
+Run Image of Tomcat 
+I will get a new container - In the container we will have java , OS and tomcat )
+I will copy my code myapp.war file on the container
+so application will up and running on the container (8989)--> we can access
+
+RUN Image of apache webserver (where you deploy html code)
+
+I will get a new container - In the container we will have apache server + debain OS
+I will copy my html file on it
+so application will up and running on the container (80)--> we can access
+
+
+Created a VM 
+Installed docker 
+Image OS ubuntu and alpine 
+run image 
+foreground mode(-it)
+
+From Suman kumari to all panelists 08:40 PM
+- Create Docker file and build the docker
+container Application Image for the application
+build in Jenkins Module
+===============================================
+
+Demo 1:
+=========================
+1. Start the VM 
+2. Install docker on Ubuntu 
+3. Start docker service 
+
+
+Demo 2:
+===========================
+In docker there are 2 main components:
+
+1. Image 
+
+2. Container 
+
+When I run an Image I get a container
+
+So Image is the most important component of docker 
+
+Using an image only you can create a container 
+
+In the container our applicaiton will be running 
+
+Container is like a box with your application + libraires and OS 
+
+Example1:
+
+Conatiner1 with Java application running on it -> app.war + tomcat + java 17 + OS 
+
+Conatiner2 with python application running on it -> app.py + python3 + OS 
+
+Conatiner3 with JS application running on it -> app.JS + nodeJS + OS 
+
+Conatiner4 with HTML application running on it -> index.html + apache + OS 
+
+
+SO we have to use docker tool that Provides us Images to create desired container 
+
+
+Docker tool provides us 2 types of images 
+
+1. Base images
+==========================
+Are given by docker 
+Created by Docker , you have to just use them
+
+Image is a file in which docker has written instruction of what will be on the container 
+
+Example:
+
+In docker hub we have all the base Images 
+
+ubuntu Image --> run the image --> container with ubuntu OS in it
+
+Centos Image  --> run the image --> container with Centos OS in it
+
+HTTPD IMAGE (apache webserver) --> RUN THE IMAGE --> CONTAINER with Debain OS + HTTPD webserver on it 
+
+
+Demo 2:
+===========================
+deploy HTML code on HTTPD Container 
+
+Step 1 :
+=============================
+become the root user on the ubuntu server 
+
+# sudo su -
+
+Step 2:
+Write the docker command to PULL httpd Image on docker host  :
+==============================
+
+# docker pull httpd
+
+As an Admin you are sending the command to docker tool installed on your ec2 server 
+
+Docker tool has a process called as docker daemon process 
+This process will check if HTTPD image is present on the ec2 server or not 
+HTTPD image is not present --> go to docker hub and pull the image in to the current machine 
+
+Step 3:
+================================
+Write the command to run the httpd  image and create container 
+
+> Container should be up and running
+> Container should have a unique name 
+
+For this we will use docker run options 
+
+# docker run httpd ==> container will not be running it will be in Exited (stopped it) you cannot start it
+
+So to have the container up and running we have to docker provided options/flags
+
+An option is always written along with  - or --
+
+1 option is :  -d ==> detached mode => container status will up and running
+
+2nd option is : --name ==> give a unique name to the container 
+
+# docker run -d --name=web httpd 
+
+Step 4: Check if container is created and check the status 
+
+# docker ps -a
+
+Step 5: Connect to container and placing the html code 
+=====================================================************
+There are 2 ways to connect to the container :
+
+1. Via the host server 
+
+2. Via the laptops's browser
+
+If the status of the container is up and running only then you can connect to the container 
+
+If container status is exited, you cannot connect to the container 
+
+# docker exec  -it <container name> < linux command>
+
+Example:
+
+# docker exec -it web bash 
+
+
+exec = execute a command on the container 
+
+bash => linux command - which is a shell terminal command
+
+-it = connect to the terminal of the container 
+
+
+We have to now write HTML code on the container and the code will be deployed automatically 
+There is no need to restart the container 
+
+In apache server the code is written in directory  -> /usr/local/apache2/htdocs
+
+The code file will always  have name as index.html
+
+give exit -> we will be exit the docker exec command.
+
+Container continues to run 
+
+
+Access the HTML application from your browser :
+==============================================
+
+Previously -> you had VM --> installed jenkins on it --> started jenkins --> 
+
+How did you access Jenkins dasboard??  iP:8080
+
+Now we have our application on httpd Container 
+
+By default apache container has port number 80
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
