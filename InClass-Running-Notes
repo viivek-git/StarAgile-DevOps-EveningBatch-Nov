@@ -269,6 +269,122 @@ How did you access Jenkins dasboard??  iP:8080
 Now we have our application on httpd Container 
 
 By default apache container has port number 80
+=====================================================
+
+
+Agenda: 06 Nov:
+========================
+WE HAVE CLASS ON FRIDAY 
+
+1. Docker Volumes -> To deploy a ecomm application on HTTPD container 
+
+2. Dockerfile -> keywords 
+Create our own image for a python app 
+Create our own image for a JAVA  app and Deploying it using Jenkins pipeline 
+
+3. Docker-compose tool -> wordpress and mysql deployment 
+
+=======================================================
+
+
+
+Demo 1:
+===========================
+
+# docker run -d --name=myweb -P -v /root/ecomm:/usr/local/apache2/htdocs/ httpd
+
+We have source code  of a web application which is written in HTML  is present in a repository 
+https://github.com/Sonal0409/ecomm.git
+
+HTML code is always deployed on HTTPD server 
+
+
+Also ensure container is up and running in detached mode  (-d)
+Ensure container has a unique name (--name)
+Also ensure you are able to access the application from the browser of your machine (-P or -p)
+
+Deploy this code on a container created from an Image httpd 
+
+
+
+Step 1: Fetch the code from GITHUB  to the docker host 
+# git clone https://github.com/Sonal0409/ecomm.git
+
+# cd ecomm
+
+# ls 
+
+
+Step 2: 
+
+Docker volume is a concept that will copy the code from your local docker host directory on to the container directory
+
+Volume = A directory on the docker host in which you store files
+
+In order to copy any file from host server to containers directory we will use the concept of Volumes (-v)
+
+Right now ecomm directory source code we will place on HTTPD container 
+
+We take httpd container directory : /usr/local/apache2/htdocs/
+
+/usr/local/apache2/htdocs/ : this is the root directory of httpd server where the hTML files have to be copied
+ in order to be deployed .
+
+ The volume flag is -v 
+
+ use it as : 
+ -v host/dir/path:containerdir
+
+When deploying on Containers the root directory can be:
+=================================
+Tomcat : JAVA war file --> usr/local/tomcat/webapps
+HTML code file --> Apache2 or httpd server : /usr/local/apache2/htdocs/
+HTML file --> nginx server : /usr/share/nginx/html
+
+
+======================================================
+
+So far we have been working with docker Base images 
+It is now the time to create our own custom Images 
+
+In docker we have we have to create our own image we will use the concept of Dockerfile 
+
+Dockerfile is a simple text file 
+In this file we will write instructions of what we need on the container 
+This dockerfile will then be build into an Image --> when u run the image you will get your custom Container 
+
+Dockerfile is not written using a programming langauge or scripting languge 
+
+Dockerfile just consist of :
+
+KEYWORD instruction/command
+
+Docker gives us  keywords using which we will write the dockerfile 
+
+FROM:  With this keyword you will give name of docker Base image on which you want to customatization
+
+RUN: we use this keyword If want any software's or application or users, directories to be created on the container
+i.e. if we want to run any linux command on the container then use RUN keyword 
+When the container is launched the command is pre executed 
+This keyword can be repeated multiple times in the dockerfile 
+
+COPY : if we have to copy the code files on the containers directory use this keyword
+Cannot copy .tar files -> compressed file 
+
+example: COPY httpd-foreground /usr/local/bin/
+
+ADD : copy the code files on the containers directory use this keyword
+But if we have to copy .tar files we will use add keyword 
+
+EXPOSE : Give the port number where container application will accessed 
+
+CMD : To run final command on the container so that container application is always up and running
+We will give that command using CMD keyword 
+This command coming form Image cna be repalced by a new command given at runtime
+
+ENTRYPOINT : To run final command on the container so that container application is always up and running
+We will give that command using ENTRYPOINT keyword
+The command coming form image cannot be replaced by any new command given by admin 
 
 
 
