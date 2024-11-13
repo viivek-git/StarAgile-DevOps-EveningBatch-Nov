@@ -1,0 +1,98 @@
+
+# vim pod1.yml
+
+kind: Pod
+apiVersion: v1
+metadata:
+ name: pod1
+ labels: # labels are used to group similar pods. The labels key and value are given by the user
+  author: sonal
+  app: nginx
+spec:
+ containers:
+  - image: nginx
+    name: c1
+
+
+# kubectl create -f pod1.yml
+
+
+
+
+Service : NodePort
+================================
+
+
+apiVersion: v1
+kind: Service
+metadata:
+ name: mysvc2
+spec:
+ type: NodePort
+ selector:
+  app: nginx
+ ports:
+  - targetPort: 80
+    port: 80
+
+
+# kubectl get service
+
+You will see the nodeport
+
+
+Go to Lab dashboard → master1→click on desktop
+
+Click on activities → search for firefox
+
+
+In the browser give localhost:nodeport
+
+==========================================
+ReplicaSet
+=============================================
+
+# vim replicaset.yml
+
+kind: ReplicaSet
+apiVersion: apps/v1
+metadata:
+ name: myrs
+spec:
+# number of pods that we desire
+ replicas: 3
+# number of pods running in the cluster with same spec that your desire
+ selector:  # current count
+  matchLabels:
+   app: webserver
+ template:   # use the template to create new pods
+  metadata:
+   labels:
+    app: webserver
+  spec:
+   containers:
+    - name: c1
+      image: nginx
+
+
+# kubectl create -f replicaset.yml
+
+# kubectl get all
+
+# kubectl get pods -l app=webserver
+
+Scaleup replicas and scale down
+
+# kubectl scale replicaset myrs --replicas=5
+
+# kubectl scale replicaset myrs --replicas=2
+
+To know more information bout the fields in YAML file use:
+# kubectl explain Pod
+# kubectl explain ReplicaSet
+
+
+
+
+
+
