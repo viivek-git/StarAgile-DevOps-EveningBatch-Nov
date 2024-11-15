@@ -1,0 +1,244 @@
+
+
+
+
+
+
+Agenda:
+
+Container Orchestration Tool - Kubernetes 
+===========================================
+Difference between DockerSwarm and Kubernetes.
+Architecture of Kubernetes 
+Install kubernetes on Ubuntu 22
+
+
+Agenda:
+ 
+What are Pods 
+Create a pod using a YAMl file 
+Create an Ubuntu pod using a YAMl file 
+Create a service to access the Pods 
+Create a node port service to access the pods 
+
+In order to write the code in kubernetes we have to use YAML file 
+
+In order to just create a single pod we have to write a YAMl file
+
+This YAML consist of 4 sections :
+
+kind:  What is the object that we have to create . The object name is always given by kubernetes
+apiVersion: A schema or library that K8s will use to create the POD. This is always given by kubernetes
+metadata: Give name or labels and details about the pod
+  name = give name of the object 
+  labels:
+  these are keys and values 
+  they are used to give a unique tag to the pod 
+  You can use labels to query pods in the cluster 
+spec: specify what should pod do
+
+
+# kubectl create -f pod-defintion.yml
+ To fetch all the pods from the cluster 
+# kubectl get pods 
+
+To delete the pods from the cluster 
+# kubectl delete pod pod1 pod2
+
+Demo 2:
+================
+In a pod you can create multiple containers and it is called as multi container Pod 
+
+If you have a requirement when :
+
+2 containers from 2 different images have to always coexist 
+
+Otherwise we always prefer 1 pod - 1 container 
+
+Can we have 1 pod (mysql + app container)
+
+If pod is deleted --> your entire app will be down 
+
+
+Instead if I create 1 pod of DB and 1 POD of webapp 
+
+What could be the use case of multi container POD :
+=================================
+When 2 containers have a depndency of collection of logs, one container need to read data form another container 
+then they can co exist .
+
+I want to see what are the container running in my Pod
+
+kubectl describe pod multi-cont | less
+
+Demo: How can we access the application that is deployed on the Pod 
+
+In docker we used port mapping concept in order to access the app of your container form your browser 
+
+-p 8989:80
+
+In kubernetes same port mapping concept is implemented using the object Service 
+
+Service of type : ClusterIP
+===============================
+
+Problem :
+
+With In kubernetes can 2 pods communicate with each other ? yes they can using the pod ip address 
+
+Step 1: Create a pod of image httpd 
+
+pod1   1/1     Running   0          32s   192.168.107.49   instance-20241019-025649   <none>           <none>
+
+Step 2: Create a pod of image ubuntu 
+
+test-pod   1/1     Running   0          10s     192.168.107.54   instance-20241019-025649   <none>           <none>
+
+
+Step 3: loginto ubuntu pod , install curl/ping/wget 
+
+ kubectl exec -it test-pod -- bash
+ 
+Step 4: from ubuntu send a request to httpd  pod 
+curl 192.168.107.49
+<html><body><h1>It works!</h1></body></html>
+
+The prolblem: 
+
+If 2 pods are communicating via their ip address but if any one pod get deleted upon recreate the pod Ip changes
+
+then we will ahve to manually go to the testing pod and changes the pod 1 ip address 
+
+2 pods cannot communicate via the names
+
+Solution:
+
+You go and create service of type Cluster IP in which
+kubernetes will give you a service which has a name and an Ipaddress 
+
+Now using the service ip address one pod can send req to the endpoint 
+
+Step 1:Check if you have any endpoints 
+
+kubectl get endpoints
+
+Step 2: Create the service 
+
+service/mysvc        ClusterIP   10.101.56.235   <none>        80/TCP    5s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
