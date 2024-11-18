@@ -1,3 +1,154 @@
+
+Configuration:
+====================
+
+making changes like:
+
+- installing packages
+- updating config files
+- copying new files
+- creation of users, groups
+- giving permissions
+- deploying applications
+- execution of scripts
+
+If we have to do these tasks in 200 servers manually
+
+ - time consuming
+ - error prone
+ - application may crash
+ - all updates may not be available
+ - difficult to keep track of all the steps that we have executed
+ - to be done on different OS seperatly
+
+Automation is and has always been an important part of DevOps in order to accelerate faster deployments and Innovations.
+It will allow the teams to perform and complete repeated tasks in less time.
+
+Configuration management : 
+> Using an automation tool to make changes on several servers in different environment in less time. Thereby bringing in consistency across all the servers
+> It also means making sure all the servers have the desired state of changes at any given point of time.
+> If desired configuration is not available, the tool should identify that and make the correct configuration change on the servers.
+> Infrastructure should be available for CM tools to make changes
+> when we use CM tools we write code to provide the details of desired changes on servers
+> The code can be version controlled and shared with team members
+
+
+Various CM tools :
+================
+
+Pull approach:
+=============
+Puppet
+Chef
+
+Push approach:
+================
+Saltstack
+Ansible
+
+=======================
+
+Ansible:
+========================
+
+It is an open source tool for deploying and making configuration changes to application
+It is a very simple and easy to work tool
+Ansible is a command tool in open source version
+There is a GUI of it available -> Ansible tower -> available with enterprise version of ansible
+Ansible is a product of RedHat and hence it always installed on Linux OS
+It is python based tool, so we need Python on every server
+In ansible the code is written using YAML
+Ansible is an agent less tool
+It also supports cloud based infrastructure.
+
+=============================
+Ansible Components:
+=============================
+
+Inventory: WHERE To Do the Changes
+==============================
+
+Inventory is a simple file which is available by default in ansible
+The default name of inventory file -> hosts
+This file is available in directory -> /etc/ansible
+In this file we will write the list of IP address or hostnames of the servers where ansible has to make the changes
+Only and only if the IP of the host is present in this file, ansible will be able to connect and make changes on it.
+We can also create inventory file with any name in any location of the ansible controller
+
+There are 2 types of inventory files:
+========================
+
+1. Static inventory file
+==========================
+if we have an infrastructure that is not autoscaling
+The number of servers are limited 
+Then user can create the inventory file and update the list of ipaddress
+
+2. Dynamic Inventory file
+==========================
+if we have an infrastructure that is  autoscaling
+The number of servers are many
+In this case manually updating the inventory file is difficult
+So we use the process of dynamically generate the inventory file 
+In this case ansible will automatically compute the list of hostnames that are part of inventory
+
+=======================
+Modules: WHAT changes to do on host servers
+=======================
+
+Modules are nothing but python scripts(pre written code of ansible) that are pushed to host servers to make changes
+these modules are python code that accepts some input parameters form the user to configure the desired changes on the host server
+Ansible will copy this python code with users input data on the host server and configuration changes will be done
+
+Example:
+=============
+
+COPY(sourcefilePath, destfilepath)
+
+copy: src=/tmp/file1 dest=/etc/file1
+
+There are 4000+ modules in ansible
+
+We can also create our own modules using python.
+
+====================================
+
+Ansible.cfg file
+==============================
+This file consists of parameters of ansible settings and configuration of ansible
+> defaults
+> previllages
+
+This file is present in the directory /etc/ansible
+and has a name ansible.cfg
+The name of the file always remain the same
+You can create ansible.cfg file in any directory. Preferably in the directory where your inventory file and ansible code is present
+
+
+
+Playbook
+===================
+Ansible code for configuration changes is written in Playbook
+
+Playbooks are then written in YAML
+
+the format is => key: value
+
+in the playbook we have 2 main sections:
+
+ hosts => host details to be fetched from inventory where changes are done
+ tasks => modules that have to be executed.
+
+
+playbook code --> it is executed --> it is converted to python code--> this code is copied on desired host using SSH ==> ansible then executes the code on each host parallely ==> after code is executed => this python code is deleted on every host by ansible
+
+=========================
+SETUP ANSIBLE
+
+
+Create 2 Ubuntu 22  EC2 machines on AWS with instance_type as t2.micro
+
+
 Let’s us Install Ansible on this Machine: Execute on master Node
 ********************************************************
 # ansible --version
@@ -7,8 +158,17 @@ Setup Ansible:
 
 #  sudo apt-get install -y software-properties-common
 #  sudo apt-add-repository ppa:ansible/ansible
+It will ask for Press [ENTER] to continue or Ctrl-c to cancel.
+Now press enter key on your keyboard
+
 #  sudo apt-get update
 #  sudo apt-get install -y ansible
+
+
+Install ansible on other OS :
+
+https://docs.ansible.com/ansible/latest/installation_guide/installation_distros.html#installing-ansible-on-ubuntu
+
 
 Step 1: Execute on Master terminal
 ===============================================
@@ -48,21 +208,6 @@ User will now be created.
 
 
 
-Step 2:
-Open the below file by executing below command:
-#  vim /etc/ssh/sshd_config
-
-
-Press i 
-Scroll down until you find PasswordAuthentication no
-Change value of PasswordAuthentication  to yes
-
-
-Save the file by pressing ESC key and then enter :wq! 🡺 press enter key
-
-
-
-Step 3:
 Add ansiuser in sudoers files and give all permission
 # vim /etc/sudoers
 Press i
@@ -70,21 +215,34 @@ Scroll down until your find : # User privilege specification
 Now enter below line under 🡺 root    ALL=(ALL:ALL) ALL
 ansiuser ALL=NOPASSWD: ALL
 
-
-
 Save the file.
 
-Step 4:
-Execute below command :
-#    systemctl restart sshd
+Generate SSH key on Master machine and copy SSH key on worker machine
+All These Steps will be executed on Master Machine only
+**********************
+
+Step 1: 
+Change user from root to ansiuser
+#   su - ansiuser
 
 
-Repeat these steps (1 to 4)  on Worker 1 and worker 2
-Step 1:
+Step 2:
+Generate ssh key on Master node for ansiuser
+Execute below command:
+# ssh-keygen
+
+press enter
+press enter
+press enter
+
+ssh key will be generated
+
+====================================
+Steps to be executed on Worker Node:
+=======================================
 
 
 # sudo su -
-
 
 Create a new user on the terminal:
 
@@ -107,60 +265,51 @@ And give Y  for
 
 Is the information correct ? [Y/n]  : y
 
+
+
+
+
+
+
+
+
+User will now be created.
+
+===============================================
 Step 2:
-Open the below file by executing below command:
-#  vim /etc/ssh/sshd_config
 
-Press i 
-Scroll down until you find PasswordAuthentication no
-Change value of PasswordAuthentication  to yes
-Save the file. ( press ESC key and give :wq!  ⇒  press enter key )
+We will give sudo permission to this user so that it can execute linux commands without need of password
 
-Step 3:
 Add ansiuser in sudoers files and give all permission
 # vim /etc/sudoers
 Press i
 Scroll down until your find : # User privilege specification
-Now enter below line under 🡺 root    ALL=(ALL:ALL) ALL
+Now enter below line under 🡺root    ALL=(ALL:ALL) ALL
 ansiuser ALL=NOPASSWD: ALL
 
-Step 4:
-# systemctl restart sshd
 
-Generate SSH key on Master machine and copy SSH key on worker machine
-All These Steps will be executed on Master Machine only
-**********************
+Now switch to ansiuser on worker node and create .ssh folder
 
-Step 1: 
-Change user from root to ansiuser
-#   su - ansiuser
+# su - ansiuser
+
+# mkdir .ssh
+
+# ls -al
 
 
-Step 2:
-Generate ssh key on Master node for ansiuser
-Execute below command:
-# ssh-keygen
+====================================
+Go to master node(devops lab) and copy the ssh public key of ansiuser
 
-press enter
-press enter
-press enter
+# cat /home/ansiuser/.ssh/id_rsa.pub
 
-ssh key will be generated
+Carefully copy the key
 
 
+Go to Worker node (AWS VM)
 
-Now lets copy the ssh key of master machine to Worker machine1 and worker machine 2
-Execute the below command on master machine.
-Syntax:
- ssh-copy-id -i ansiuser@privateipWorker1
+# echo "<give your public key>" >> ~/.ssh/authorized_keys
 
-#  ssh-copy-id -i ansiuser@172.31.726.98
-
-
-
-Repeat the same command to copy ssh key on Worker2 also.
-
-
+Great job, the setup is complete
 
 Inventory File:
 ------------------
@@ -191,6 +340,7 @@ Press i to insert below data
 Save the file.
 
 
+Execute on Ansible Controller machine
 
 Execute adhoc command using the current inventory file
 =======================================
