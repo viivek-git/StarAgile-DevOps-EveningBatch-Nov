@@ -1,0 +1,235 @@
+Let’s us Install Ansible on this Machine: Execute on master Node
+********************************************************
+# ansible --version
+
+Setup Ansible:
+
+
+#  sudo apt-get install -y software-properties-common
+#  sudo apt-add-repository ppa:ansible/ansible
+#  sudo apt-get update
+#  sudo apt-get install -y ansible
+
+Step 1: Execute on Master terminal
+===============================================
+
+
+Create a new user on the terminal:
+
+
+# adduser ansiuser
+
+
+Enter New password :  ansiuser
+Retype new Password: ansiuser
+
+
+Don’t enter any value for fullname, room number, workphone, homephone other
+
+
+Just keep pressing enter key.	
+
+
+And give Y  for 
+
+
+Is the information correct ? [Y/n]  : y
+
+
+
+
+
+
+
+
+
+User will now be created.
+
+
+
+
+Step 2:
+Open the below file by executing below command:
+#  vim /etc/ssh/sshd_config
+
+
+Press i 
+Scroll down until you find PasswordAuthentication no
+Change value of PasswordAuthentication  to yes
+
+
+Save the file by pressing ESC key and then enter :wq! 🡺 press enter key
+
+
+
+Step 3:
+Add ansiuser in sudoers files and give all permission
+# vim /etc/sudoers
+Press i
+Scroll down until your find : # User privilege specification
+Now enter below line under 🡺 root    ALL=(ALL:ALL) ALL
+ansiuser ALL=NOPASSWD: ALL
+
+
+
+Save the file.
+
+Step 4:
+Execute below command :
+#    systemctl restart sshd
+
+
+Repeat these steps (1 to 4)  on Worker 1 and worker 2
+Step 1:
+
+
+# sudo su -
+
+
+Create a new user on the terminal:
+
+
+# adduser ansiuser
+
+
+Enter New password :  ansiuser
+Retype new Password: ansiuser
+
+
+Don’t enter any value for fullname, room number, workphone, homephone other
+
+
+Just keep pressing enter key.	
+
+
+And give Y  for 
+
+
+Is the information correct ? [Y/n]  : y
+
+Step 2:
+Open the below file by executing below command:
+#  vim /etc/ssh/sshd_config
+
+Press i 
+Scroll down until you find PasswordAuthentication no
+Change value of PasswordAuthentication  to yes
+Save the file. ( press ESC key and give :wq!  ⇒  press enter key )
+
+Step 3:
+Add ansiuser in sudoers files and give all permission
+# vim /etc/sudoers
+Press i
+Scroll down until your find : # User privilege specification
+Now enter below line under 🡺 root    ALL=(ALL:ALL) ALL
+ansiuser ALL=NOPASSWD: ALL
+
+Step 4:
+# systemctl restart sshd
+
+Generate SSH key on Master machine and copy SSH key on worker machine
+All These Steps will be executed on Master Machine only
+**********************
+
+Step 1: 
+Change user from root to ansiuser
+#   su - ansiuser
+
+
+Step 2:
+Generate ssh key on Master node for ansiuser
+Execute below command:
+# ssh-keygen
+
+press enter
+press enter
+press enter
+
+ssh key will be generated
+
+
+
+Now lets copy the ssh key of master machine to Worker machine1 and worker machine 2
+Execute the below command on master machine.
+Syntax:
+ ssh-copy-id -i ansiuser@privateipWorker1
+
+#  ssh-copy-id -i ansiuser@172.31.726.98
+
+
+
+Repeat the same command to copy ssh key on Worker2 also.
+
+
+
+Inventory File:
+------------------
+Inventory is a simple file which is updated by the ansible admin with hostnames or Ip address of host servers.
+The default name of this file is hosts
+The default location of hosts file is /etc/ansible
+
+
+By default the inventory file for ansible will be available at /etc/ansible directory
+Demo:
+Currently we are logged in as ansiuser.
+Lets create an inventory file in home directory of ansiuser which is /home/ansiuser
+
+# cd
+# pwd
+
+
+
+Lets create a file with name as myinventory and create host group inside it
+
+# sudo vim myinventory
+Press i to insert below data
+
+[webserver]
+172.31.26.98 => <private ip worker1>
+172.31.22.35 => <private ip worker2>
+
+Save the file.
+
+
+
+Execute adhoc command using the current inventory file
+=======================================
+# cd
+# pwd
+/home/ansiuser
+In this directory let’s create an inventory file
+# sudo vim myinventory
+Make following entry in the file:
+
+[webserver]
+172.31.47.98
+172.31.42.13
+
+Save the file (:wq!)
+
+Syntax:
+ansible -i /pathtoinventoryfile  groupname -m modulename
+
+execute this command:
+#   ansible -i /home/ansiuser/myinventory webserver -m ping
+
+
+
+Let’s see a demo where we make this inventory file as your default inventory file.
+We will create a new ansible.cfg file in the same directory of ansiuser and set up the inventory file location.
+
+#   sudo vim ansible.cfg
+Press i  and enter below data
+[defaults]
+inventory = /home/ansiuser/myinventory
+
+Save the file.
+
+
+
+Now execute the adhoc command without giving the path of inventory file.
+
+# ansible webserver -m ping
+
+
+Note: Ansible always looks in the current directory for ansible.cfg file from which it gets the details of inventory file path. otherwise it checks for the inventory file in the /etc/ansible directory.
