@@ -95,3 +95,11 @@ vim playbook1.yml
    - nginx-role
    - mysql
    - php
+
+
+More exaplmes on Roles - Advance:
+
+https://github.com/Sonal0409/Ansible-Project.git
+
+https://github.com/Sonal0409/AnsibleRolesDemo.git
+
