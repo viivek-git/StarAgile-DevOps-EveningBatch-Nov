@@ -1,0 +1,161 @@
+These steps will also be used to complete Course End project -1
+
+# mkdir roles
+
+# cd roles
+
+# ansible-galaxy init apache-project
+
+# ls
+
+# vim tasks/main.yml
+
+  - name: Install the package {{pkg_name}}
+    package: name={{pkg_name}} state=present
+  - name: Start {{pkg_name}} service
+    service: name={{pkg_name}} state=started
+  - name: Update the ports.conf file with new port details
+    template: src=ports.conf.j2 dest=/etc/apache2/ports.conf
+    notify: Restart {{pkg_name}} service
+  - name: Update the default conf file with new port details
+    template: src=000-default.conf.j2 dest=/etc/apache2/sites-enabled/000-default.conf
+    notify: Restart {{pkg_name}} service
+  - name: Deploy index.html file
+    copy: src=index.html dest={{dest_path}}
+    notify: Restart {{pkg_name}} service
+
+
+Save the file
+
+# vim vars/main.yml
+
+pkg_name: apache2
+dest_path: /var/www/html
+http_port: 80
+document_root: /var/www/html
+
+
+Save the file
+
+# vim templates/ports.conf.j2
+
+Listen {{http_port}}
+
+<IfModule ssl_module>
+        Listen 443
+</IfModule>
+
+<IfModule mod_gnutls.c>
+        Listen 443
+</IfModule>
+
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
+
+
+Save the file
+===========================
+
+
+# vim templates/000-default.conf.j2
+
+<VirtualHost *:{{http_port}}>
+        # The ServerName directive sets the request scheme, hostname and port that
+        # the server uses to identify itself. This is used when creating
+        # redirection URLs. In the context of virtual hosts, the ServerName
+        # specifies what hostname must appear in the request's Host: header to
+        # match this virtual host. For the default virtual host (this file) this
+        # value is not decisive as it is used as a last resort host regardless.
+        # However, you must set it for any further virtual host explicitly.
+        #ServerName www.example.com
+
+        ServerAdmin webmaster@localhost
+        DocumentRoot {{document_root}}
+
+        # Available loglevels: trace8, ..., trace1, debug, info, notice, warn,
+        # error, crit, alert, emerg.
+        # It is also possible to configure the loglevel for particular
+        # modules, e.g.
+        #LogLevel info ssl:warn
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+        # For most configuration files from conf-available/, which are
+        # enabled or disabled at a global level, it is possible to
+        # include a line for only one particular virtual host. For example the
+        # following line enables the CGI configuration for this host only
+        # after it has been globally disabled with "a2disconf".
+        #Include conf-available/serve-cgi-bin.conf
+</VirtualHost>
+
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
+
+
+
+Save the file
+
+
+# vim handlers/main.yml
+
+
+- name: Restart {{pkg_name}} service
+  service: name={{pkg_name}} state=restarted
+
+Save the file
+
+# vim files/index.html
+
+<marquee> LOOK MY PROJECT EXECUTED SUCCESSFULLY </marquee>
+<h1> This is project 1 for the course </h1>
+<h1> Created by Sonal Mittal </h1>
+
+
+
+Save the file
+
+
+# cd
+
+# vim playbook-roles-Project.yml
+
+- name: Project 1 of the course
+  hosts: webserver
+  become: true
+  roles:
+  - apache-Project
+
+
+
+Run the playbook and see the application deployment
+
+
+NGINX deployment: CEP1
+====================
+
+playbookNginx.yml
+
+- name: Deploy on nginx
+  hosts: webserver
+  become: true
+  vars:
+   http_port: 80
+   document_root: /var/www/html
+  tasks:
+  - name: Install nginx
+    package: name=nginx state=present
+  - name: Start Nginx
+    service: name=nginx state=started
+  - name: update nginx conf
+    template: src=default.j2 dest=/etc/nginx/sites-available/default
+    notify: Restart nginx service
+  - name: Copy the index.html file
+    copy: src=index.html dest=/var/www/html
+  handlers:
+  - name: Restart nginx service
+    service: name=nginx state=restarted
+
+
+# vim index.html
+
+<h1> Nginx deployment </h1>
+
