@@ -1,0 +1,97 @@
+vim playbook1.yml
+
+- name: Debug module of Ansible
+  hosts: webserver
+  tasks:
+  - name: Print a message on the controller
+    debug: msg="Hello to Ansible Controller"
+
+# vim  playbook2.yml
+
+- name: execute a command
+  hosts: webserver
+  become: true
+  tasks:
+  - name: Execute a command on Worker nodes
+    command: hostname -s
+    register: command_output
+  - name: Print the register variable
+    debug: var=command_output
+
+# vim playbook3.yml
+
+- name: Install git on the worker node
+  hosts: webserver
+  become: true
+  become_user: root # the ansiusers permissions are excalted to be root like sudo apt-get update
+  tasks:
+  - name: Update the apt repo
+    command: apt-get update
+  - name: Install git on workers
+    package: name=git state=present
+  - name: Install maven on workers
+    package: name=maven state=present
+  - name: Install apache2 server
+    package: name=apache2 state=present
+
+# vim playbookapache2.yml
+
+- name: Deploy HTML code
+  hosts: webserver
+  become: true
+  tasks:
+  - name: Install package on the Server
+    package: name=apache2 state=absent
+  - name: Start the apache2 service
+    service: name=apache2 state=stopped
+  - name: Deploy HTML code on the apache2 server   # this is parent task
+    copy: src=index.html dest=/var/www/html
+    notify: Restart apache2 server
+  handlers:    # these are child tasks, they are executed when called by parent task
+  - name: Restart apache2 server
+    service: name=apache2 state=restarted
+# vim nginxdeploy.yml
+
+- name: Deploy on nginx
+  hosts: webserver
+  become: true
+  vars:
+   http_port: 80
+   document_root: /var/www/html
+  tasks:
+  - name: Install nginx
+    package: name=nginx state=present
+  - name: Start Nginx
+    service: name=nginx state=started
+  - name: Copy the index.html file
+    copy: src=index.html dest=/var/www/html
+  handlers:
+  - name: Restart nginx service
+    service: name=nginx state=restarted
+
+# vim playbookjava.yml
+
+- name: Install java and mavane on worker nodes
+  hosts: webserver
+  become: true
+  tasks:
+  - name: update apt-get repo
+    command: apt-get update
+  - name: Install multiple packages
+    package: name={{item}} state=present
+    loop: # repeat the module again and again for each loop item value
+     - openjdk-11-jdk
+     - maven
+     - nano
+     - tree
+     - php
+
+# vim playbookroles.yml
+
+- name: Roles in ansible
+  hosts: webserver
+  become: true
+  roles:
+   - nginx-role
+   - mysql
+   - php
