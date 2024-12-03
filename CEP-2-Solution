@@ -1,0 +1,584 @@
+Project -2 : Certification Project – HealthCare
+
+Use the below code repository to complete the project:
+https://github.com/StarAgileDevOpsTraining/star-agile-health-care.git
+
+Using the above code create a DevOps CICD pipeline
+
+-	GIT and Github -> Maintain source code
+-	Terraform to create a EC2 instance
+-	Ansible -> Setup to install required packages
+-	Jenkins -> Create Build Pipeline and integrate webhooks/pollSCM
+-	Docker -> Use docker to build images and push to dockerhub
+-	Prometheous and Grafana  - monitor Jenkins pipeline
+
+Step 1: 
+Create a VM and install Terraform on it
+=============================
+OS: ubuntu 22
+Instance_type: t2.micro
+Add Network settings  add security group -> All traffic and anywhere
+
+Connect to the instance.
+Steps to install terraform:
+=================================
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+sudo apt update && sudo apt install terraform
+
+Create Accesskey and secret key in AWS for terraform to connect:
+Once Accesskey and secret key is created in AWS – IAM
+Go and configure it on the terraform VM
+
+Install awscli on the VM
+# apt-get update
+# apt-get install awscli -y
+# aws configure
+
+Give the valid access key
+
+Give the valid secret key
+
+Press enter, no need to give any region and format option
+To verify if the credentials have been set for aws
+
+# cat ~/.aws/credentials
+Write terraform configuration file to create an EC2 server and install ansible on it.
+
+# mkdir myproject
+# cd myproject
+# vim aws_infra.tf
+
+provider "aws" {
+
+region = "us-east-1"
+
+shared_credentials_files =  ["~/.aws/credentials"]
+
+}
+
+resource "tls_private_key" "mykey" {
+  algorithm = "RSA"
+
+}
+
+resource "aws_key_pair" "aws_key" {
+  key_name   = "web-key"
+  public_key = tls_private_key.mykey.public_key_openssh
+
+  provisioner "local-exec" {
+  command = "echo '${tls_private_key.mykey.private_key_openssh}' > ./web-key.pem"
+
+}
+
+}
+
+resource "aws_vpc" "sl-vpc" {
+ cidr_block = "10.0.0.0/16"
+  tags = {
+   Name = "sl-vpc"
+}
+
+}
+
+resource "aws_subnet" "subnet-1"{
+
+vpc_id = aws_vpc.sl-vpc.id
+cidr_block = "10.0.1.0/24"
+depends_on = [aws_vpc.sl-vpc]
+map_public_ip_on_launch = true
+  tags = {
+   Name = "sl-subnet"
+}
+
+}
+
+
+resource "aws_route_table" "sl-route-table"{
+vpc_id = aws_vpc.sl-vpc.id
+  tags = {
+   Name = "sl-route-table"
+}
+
+}
+
+resource "aws_route_table_association" "a" {
+  subnet_id      = aws_subnet.subnet-1.id
+  route_table_id = aws_route_table.sl-route-table.id
+}
+
+
+resource "aws_internet_gateway" "gw" {
+ vpc_id = aws_vpc.sl-vpc.id
+ depends_on = [aws_vpc.sl-vpc]
+   tags = {
+   Name = "sl-gw"
+}
+
+}
+
+resource "aws_route" "sl-route" {
+
+route_table_id = aws_route_table.sl-route-table.id
+destination_cidr_block = "0.0.0.0/0"
+gateway_id = aws_internet_gateway.gw.id
+
+
+}
+
+variable "sg_ports" {
+type = list(number)
+default = [8080,80,22,443]
+
+}
+
+
+
+resource "aws_security_group" "sl-sg" {
+  name        = "sg_rule"
+  vpc_id = aws_vpc.sl-vpc.id
+  dynamic  "ingress" {
+    for_each = var.sg_ports
+    iterator = port
+    content{
+    from_port        = port.value
+    to_port          = port.value
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    }
+  }
+egress {
+
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+
+
+}
+}
+
+resource "aws_instance" "myec2" {
+  ami           = "ami-005fc0f236362e99f"
+  instance_type = "t2.medium"
+  key_name = "web-key"
+  subnet_id = aws_subnet.subnet-1.id
+  security_groups = [aws_security_group.sl-sg.id]
+  tags = {
+    Name = "Project-EC2"
+  }
+  provisioner "remote-exec" {
+  connection {
+    type     = "ssh"
+    user     = "ubuntu"
+    private_key = tls_private_key.mykey.private_key_pem
+    host     = self.public_ip
+  }
+  inline = [
+  "sudo apt update",
+  "sudo apt install software-properties-common",
+  "sudo add-apt-repository --yes --update ppa:ansible/ansible",
+  "sudo apt install ansible -y"
+]
+}
+}
+
+# terraform init
+
+# terraform apply --auto-approve
+
+Step 2:  Install all the tools for CICD
+Go the us-east-1 region:
+
+Please connect to the newly created EC2 instance which has Ansible installed on it -> We can call this instance as Ansible Controller.
+[make sure its instance type is t2.medium because we have to setup Jenkins, docker, monitoring tools on this]
+
+Connect using EC2 instance connect
+Check if ansible is installed:
+# ansible --version
+# sudo su –
+Run the below commands for installing Jenkins: [Always take the lastest steps for Jenkins]
+
+ 
+Add Jenkins key to the server
+    #  sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+Make Jenkins apt repo
+    # echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+Create a playbook with below code
+# vim playbook1.yml
+
+
+- name: Install and set up devops tools
+  hosts: localhost
+  become: true
+  tasks:
+  - name: Update the apt repo
+    command: apt-get update 
+  - name: Install multiple packages
+    package: name={{item}} state=present
+    loop:
+     - git
+     - docker.io
+     - openjdk-17-jdk
+  - name: update apt-repo
+    command: sudo apt-get update
+  - name: install jenkins
+    command: sudo apt-get install jenkins -y
+  - name: start Jenkins and docker service 
+    service: name={{item}} state=started
+    loop:
+    - jenkins
+    - docker
+Save the file and run it
+
+# ansible-playbook playbook1.yml
+
+Step 3: Continuous Integration pipeline
+==========================================================
+Setup Jenkins dashboard and login to the Jenkins Dashboard.
+
+Setup maven in tools section of Jenkins.
+
+Create a Pipeline code to fetch code form github and test and build the code using maven commands.
+
+pipeline{
+    
+    agent any
+    
+    tools{
+        maven 'mymaven'
+    }
+    
+    stages{
+        stage('Clone Repo')
+        {
+            steps{
+                git 'https://github.com/StarAgileDevOpsTraining/star-agile-health-care.git'
+            }
+        }
+        stage('Test Code')
+        {
+            steps{
+                sh 'mvn test'
+            }
+        }
+        
+        stage('Build Code')
+        {
+            steps{
+                sh 'mvn package'
+            }
+        }
+        
+    }
+}
+
+
+
+Step 4: Containerize and implement microservice architecture
+We will write a dockerfile and save it in the github repo
+
+FROM openjdk:11
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
+EXPOSE 8082
+ENTRYPOINT ["java","-jar","/app.jar"]
+
+We will go to the CICD pipeline in Jenkins  add a stage to  build dockerfile in to an Image
+
+We will run the image to deploy application on container.
+
+Before running the pipeline, go to the terminal of VM and execute this command:
+This command will allow Jenkins to run docker commands
+# chmod -R 777 /var/run/docker.sock
+
+Final Pipeline code:
+
+pipeline{
+    
+    agent any
+    
+    tools{
+        maven 'mymaven'
+    }
+    
+    stages{
+        stage('Clone Repo')
+        {
+            steps{
+                git 'https://github.com/Sonal0409/banking-finance-Project1.git'
+            }
+        }
+        stage('Test Code')
+        {
+            steps{
+                sh 'mvn test'
+            }
+        }
+        
+        stage('Build Code')
+        {
+            steps{
+                sh 'mvn package'
+            }
+        }
+        stage('Build Image')
+        {
+            steps{
+                sh 'docker build -t myproject1:$BUILD_NUMBER .'
+            }
+        }
+        
+        stage('Push the Image to dockerhub')
+        {
+            steps{
+                
+        withCredentials([string(credentialsId: 'DOCKER_HUB_PASWD', variable: 'DOCKER_HUB_PASWD')]) 
+                {
+               sh 'docker login -u sonal04 -p ${DOCKER_HUB_PASWD} '
+               }
+                sh 'docker tag myproject1:$BUILD_NUMBER sonal04/myproject1:$BUILD_NUMBER '
+                sh 'docker push sonal04/myproject1:$BUILD_NUMBER'
+            }
+        }
+    }
+}
+
+----------------------------------------------
+Create new VM and set up kubernetes on it
+
+
+Connect to master and execute below commands:
+
+Only on MASTER NODE:
+============================================
+# sudo su -
+
+## Install Containerd
+
+sudo wget https://raw.githubusercontent.com/lerndevops/labs/master/scripts/installContainerd.sh -P /tmp
+sudo bash /tmp/installContainerd.sh
+sudo systemctl restart containerd.service
+
+
+### Install kubeadm,kubelet,kubectl
+
+You will install these packages on all of your machines:
+kubeadm: the command to bootstrap the cluster.
+kubelet: the component that runs on all of the machines in your cluster and does things like starting pods and containers.
+kubectl: the command line util to talk to your cluster.
+
+
+# sudo wget https://raw.githubusercontent.com/lerndevops/labs/master/scripts/installK8S.sh -P /tmp
+
+# sudo bash /tmp/installK8S.sh
+
+## Initialize kubernetes Master Node
+
+   # sudo kubeadm init --ignore-preflight-errors=all
+
+Execute the below commands to setup kubectl and apiserver communication
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+   ## install networking driver -- Weave/flannel/canal/calico etc...
+
+   ## below installs calico networking driver
+
+   kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/calico.yaml
+
+   # Validate:  kubectl get nodes
+
+
+Just for your information:
+
+
+
+=========================================
+
+
+
+SETUP worker Nodes:
+=====================================
+Create an Ubuntu server:
+ instance type t2.medium(AWS), e2 medium(GCP)
+OS : ubuntu 22 (AWS & GCP)
+
+
+
+
+
+
+
+On All Worker Nodes
+## Install Containerd
+# sudo su -
+sudo wget https://raw.githubusercontent.com/lerndevops/labs/master/scripts/installContainerd.sh -P /tmp
+sudo bash /tmp/installContainerd.sh
+sudo systemctl restart containerd.service
+
+## Install kubeadm,kubelet,kubectl
+
+sudo wget https://raw.githubusercontent.com/lerndevops/labs/master/scripts/installK8S.sh -P /tmp
+sudo bash /tmp/installK8S.sh
+
+## Run Below on Master Node to get join token
+
+#  kubeadm token create --print-join-command
+
+    copy the kubeadm join token from master & run it on all worker nodes
+
+On Master node:
+
+# kubectl get nodes
+
+===============================================================================
+
+Pods in Kubernetes:
+
+# docker run pod1 --image <ImageName>
+
+# docker get pods
+
+
+===============================================================================
+
+It is better to install kubernetes as a GKE and deploy the image
+
+Deploy prometheous and grafana on GKE using HELM
+
+HELM:
+=====================
+
+On linux OS we have package managers like yum or apt which we use to isntall package
+
+ like:  yum install git
+          apt-get install httpd
+
+
+Helm is a package manager of kubernetes which comes with set of YAML files (pre-written) which when executed will install softwares or tools on the kubernetes cluster
+
+So if we have to install open source tools or applications on kubernetes cluster we can use HELM
+
+
+Install using Helm
+===========================
+Add helm repo
+
+# helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+Update helm repo
+
+# helm repo update
+
+Install helm
+
+# helm install prometheus prometheus-community/prometheus
+
+Expose Prometheus Service
+
+This is required to access prometheus-server using your browser.
+
+# kubectl expose service prometheus-server --type=NodePort --target-port=9090 --name=prometheus-server-ext
+
+In the kubernetes master node run the queries
+
+# kubectl get pods
+
+# kubectl get svc
+
+Go to the browser:
+
+take the public ip of the masternode and nodeport number
+
+example: http://34.170.213.215:31753/
+
+You will see prometheous dashboard
+
+Now Execute below queries to complete assignment:
+
+kube_pod_container_resource_limits
+
+
+Grafana:
+
+Install using Helm
+Add helm repo
+helm repo add grafana https://grafana.github.io/helm-charts
+
+Update helm repo
+helm repo update
+
+Install helm
+helm install grafana grafana/grafana
+
+
+Username is admin and get password by running below command:
+
+kubectl get secret --namespace default grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+
+wHJVMWzo3fifms3VmhjOBp8gtuhVoUGAGx7fqkHt
+
+
+Expose Grafana Service
+kubectl expose service grafana --type=NodePort --target-port=3000 --name=grafana-ext
+
+
+Loginto grafana: username will be admin and password will be the text that we copied earlier
+
+Step 1: In grafana we will now setup the Data source:
+==================================
+Click on Data source --> scroll down -- to add prometheous URL field. Copy the prometheous dashboard URL -> https://ipaddress:portnumber
+
+Scroll down --> click on save and test
+
+Grafana will now be able to fetch data from prometheous
+
+Step 2: Import dashboard to display the Data
+
+Go to Homepage of grafana --> click on Dashboards --> Click on Import dashboard --> the id of dashboard is 16734 and click on load
+
+Scroll down and select prometheous data source -> click on Import
+
+
+
+Assignment 1:
+====================
+Use dashboard, 16734 and add the alert
+
+Assignment 2: Create your own dashboard
+=====================
+Panel 1 - CPU utilization
+
+avg(100 - (avg by (node) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100))
+
+Panel 2: Memory
+
+(sum (node_memory_MemTotal_bytes) - sum (node_memory_MemAvailable_bytes)) / sum (node_memory_MemTotal_bytes) * 100
+
+panel 3- file storage
+
+node_disk_filesystem_info
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
