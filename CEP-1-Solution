@@ -399,6 +399,9 @@ sudo systemctl enable prometheus
 sudo systemctl status prometheus
 Now access Prometehus in your browser
 <server-ip>:9090
+
+
+
 Step #2:Install Node Exporter on Ubuntu 22.04 LTS
 # wget https://github.com/prometheus/node_exporter/releases/download/v1.8.2/node_exporter-1.8.2.linux-amd64.tar.gz
 # sudo tar xvfz node_exporter-*.*-amd64.tar.gz
